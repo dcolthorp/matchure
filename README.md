@@ -1,7 +1,6 @@
 matchure
 ============
 
-
 Matchure is pattern matching for clojure.
 
 * sequence destructuring
@@ -12,7 +11,7 @@ Matchure is pattern matching for clojure.
 * instance checking
 * arbitrary boolean expressions
 * boolean operators (and, or, not)
-* if, when, cond variants
+* if, when, cond, fn, and defn variants
 
 Matchure is pretty fast too – all patterns matches are compiled to nested if statements at compile time. 
 
@@ -35,7 +34,7 @@ Basic values check for equality
 
 `?` has special meaning in matchure. `?` can
 be thought of as the thing being matched against, and so by itself always succeeds. It is also used to store the matched value in a variable
-and is substituted into function calls for arbitrary tests.
+and is substituted into function calls for arbitrary tests (examples below).
 
 ### Regular expressions
 
@@ -128,7 +127,7 @@ You can also use `when-match`
     (cond-match "hello, world"
       #"foo" "matches foo"
       #"hello" "matches hello"
-      ? "doesn't match either")
+      ? "doesn't match either") ;=> "matches hello"
 
 Or match multiple values against multiple patterns
 
@@ -136,7 +135,29 @@ Or match multiple values against multiple patterns
       (cond-match
         [#"foo" s] "matches foo"
         [#"hello" s] "matches hello"
-        [? s] "doesn't match either"))
+        [? s] "doesn't match either")) ;=> "matches hello"
+
+### fn-match and defn-match
+
+`fn-match` and `defn-match` work like the corresponding builtins, but
+match their patterns. They support both the (fn [& args] body) and (fn
+([& arglist1] body1)...) variants. An IllegalArgumentException is
+raised if either the number of 
+
+`fn-match` defines anonymous functions that pattern match on
+arguments:
+
+    (fn-match this
+      ([0] 1)
+      ([1] 1)
+      ([?n] (+ (this (dec n)) (this (dec (dec n))))))
+
+`defn-match` works similarly:
+
+    (defn-match fib
+      ([0] 1)
+      ([1] 1)
+      ([?n] (+ (fib (dec n)) (fib (dec (dec n))))))
 
 ### More examples
 

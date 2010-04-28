@@ -147,3 +147,65 @@
 	   (cond-match [[?a ?b 4] [2 3 nil]] :miss
 		       [[?a ?b 3] [1 2 3]] {:a a, :b b})))))
 
+
+(deftest test-fn-match
+  (is (= 1
+         ((fn-match ([0] 1)) 0)))
+  
+  (let [myfn (fn-match ([(even? ?)] true)
+                       ([(odd? ?)] false))]
+    
+    (is (myfn 0))
+    (is (not (myfn 1))))
+  
+  (let [fib (fn-match this
+                      ([0] 1)
+                      ([1] 1)
+                      ([?n] (+ (this (dec n))
+                               (this (dec (dec n))))))]
+    (is (= 1 (fib 0)))
+    (is (= 1 (fib 1)))
+    (is (= 2 (fib 2)))
+    (is (= 5 (fib 4)))
+
+    (is (thrown? IllegalArgumentException (fib)))
+    (is (thrown? IllegalArgumentException (fib 1 2))))
+
+  (is ((fn-match [1] true)
+       1))
+
+  (is (thrown? IllegalArgumentException ((fn-match [1] true)
+        2))))
+
+(defn-match testfn
+  "docstr"
+  {:arglists '([]  [n] [s n] [x y])}
+  ([] :zero-args)
+  ([(and ?n (number? ?))]
+     [:n n])
+  ([(and ?s (string? ?)) (and ?n (number? ?))]
+     [:s-n s n])
+  ([?x ?y]
+     [:x-y x y])
+  {:comment "meta 2"})
+
+
+(deftest test-defn-match
+  (testing "meta assignment"
+   (is (re-find #"docstr" (get (meta (var testfn)) :doc)))
+   (is (= (get (meta (var testfn)) :arglists)
+          '([] [n] [s n] [x y])))
+   (is (= "meta 2"
+          (get (meta (var testfn)) :comment))))
+
+  (is (= :zero-args (testfn)))
+
+  (is (= [:n 1] (testfn 1)))
+  (is (thrown? IllegalArgumentException
+               (testfn :bad)))
+  
+  (is (= [:s-n "s" 5] (testfn "s" 5)))
+  (is (= [:x-y 1 2] (testfn 1 2)))
+
+  (is (thrown? IllegalArgumentException
+               (testfn :too :many :args))))

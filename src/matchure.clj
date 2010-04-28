@@ -55,13 +55,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; state manipulation/usage helpers
-(defn success "Do whatever a successful match entails. Returns code for a successful match." [state]
+(defn- success "Do whatever a successful match entails. Returns code for a successful match." [state]
   ((state :success) state))
 
-(defn failure "Do whatever a failed match entails. Returns code for a failed match." [state]
+(defn- failure "Do whatever a failed match entails. Returns code for a failed match." [state]
   ((state :failure) state))
 
-(defn simple-if "Return an if statement testing condition that uses the default success and failure"
+(defn- simple-if "Return an if statement testing condition that uses the default success and failure"
   ([state condition] (simple-if state condition (success state)))
   ([state condition true-case] (simple-if state condition true-case (failure state)))
   ([state condition true-case false-case]
@@ -72,7 +72,7 @@
   (simple-if state (list '= matching-name pattern)))
 
 
-(defn wrap-result "Wrap succuss and/or failure behavior with the functions specified. Passes the wrapping
+(defn- wrap-result "Wrap succuss and/or failure behavior with the functions specified. Passes the wrapping
 functions the current state with the original success/failure behavior restored when that result is signaled
 in a submatch."
   [state & key-wrappers]
@@ -143,6 +143,143 @@ the following match functions are never evaluated. "
 	    `(let [~whatn ~what]
 	       ~(compile-conditions wrapped-patterns))))
 	(compile-conditions patterns))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; fn-match
+
+(defn- varargs? [form]
+  (some #(= '& %) (first form)))
+
+(defn- min-non-varargs-length [forms]
+  (apply min (map #(count (first %)) (remove varargs? forms))))
+(defn- max-non-varargs-length [forms]
+  (apply max (map #(count (first %)) (remove varargs? forms))))
+
+(defn- min-varargs [form]
+  (count (take-while #(not (= '& %)) (first form))))
+
+(defn group-fn-forms-by-count
+  "Given a sequence of ([&args] forms) forms, group them into a hash of {count, [forms]}"
+  [forms]
+  (let [max-size (max-non-varargs-length forms)
+        min-size (min-non-varargs-length forms)]
+    (reduce
+     (fn [groups form]
+       (if (varargs? form)
+         (loop [i (max (min-varargs form)
+                       min-size) groups groups]
+           (if (<= i max-size)
+             (let [collection (or (get groups i) [])]
+              (recur (inc i)
+                     (assoc groups i (conj collection form))))
+             groups))
+         (let [size (count (first form))
+              collection (or (get groups size) [])]
+          (assoc groups size (conj collection form)))))
+     (sorted-map)
+     forms)))
+
+(defn- fn-form-for-match
+  "Given a number of arguments and a sequence of ([args] forms) values, generate a ([args] forms) form that can be used in a standard fn. "
+  [arg-count forms]
+  (let [argnames (map gensym (map #(str "arg" %) (range arg-count)))]
+    `([~@argnames]
+        (cond-match
+          ~@(mapcat
+             (fn [form]
+               (if (varargs? form)
+                 (let [n (min-varargs form)
+                       first-patterns (take n (first form))
+                       rest-pattern (last (first form))
+                       [first-argnames rest-argnames] (split-at n argnames)
+                       first-matches (into [] (interleave first-patterns first-argnames))
+                       all-matches (into []  (concat first-matches [rest-pattern (cons 'list rest-argnames)]))]
+                   (cons all-matches
+                         (if (empty? (rest form))
+                           [nil]
+                           (rest form))))
+                 `(~(into [] (interleave (first form) argnames))
+                   ~@(if (empty? (rest form))
+                           [nil]
+                           (rest form)))))
+             forms)
+          ~@(list
+             (into [] (interleave (repeat arg-count '_) argnames))
+             '(throw (IllegalArgumentException. "Failed to match arguments")))))))
+
+
+(defn- varargs-fn-form-for-match
+  [min-length forms]
+  (let [argnames (map gensym (map #(str "arg" %) (range min-length)))
+        restname (gensym "rest")
+        args (gensym "args")]
+    `([~@argnames & ~restname]
+        (cond-match (list* ~@argnames ~restname)
+                    ~@(mapcat
+                       (fn [form]
+                         `(~(first form)
+                           ~@(if (empty? (rest form)) [nil]
+                                 (rest form))))
+                       forms)
+                    ~'_ (throw (IllegalArgumentException. "Failed to match arguments"))))))
+
+(defmacro fn-match
+  "Works like clojure.core/fn, but argument lists are patterns. Any failed match raises IllegalArgumentException.
+
+Example:
+  (fn-match this
+          ([0] 1)
+          ([1] 1)
+          ([?n] (+ (this (dec n)) (this (dec (dec n))))))"
+  [& forms]
+  (let [name-container (if (symbol? (first forms))
+                         (list (first forms))
+                         (list))
+        forms (if (symbol? (first forms))
+                (next forms)
+                forms)
+        forms (if (vector? (first forms))
+                `((~@forms))
+                forms)]
+    (let [varargs (filter varargs? forms)
+          groups (group-fn-forms-by-count forms)]
+     `(fn ~@name-container
+        ~@(map #(apply fn-form-for-match %) groups)
+        ~@(if (empty? varargs)
+            (list)
+            (list (varargs-fn-form-for-match (min-non-varargs-length forms) varargs)))))))
+
+(defmacro defn-match
+  "Works like clojure.core/defn, but argument lists are patterns. Any failed match raises IllegalArgumentException.
+
+Example:
+(defn-match fib
+          ([0] 1)
+          ([1] 1)
+          ([?n] (+ (fib (dec n)) (fib (dec (dec n))))))"
+  [name & forms]
+  (let [m (or (meta name) {})
+        m (if (string? (first forms))
+            (conj m {:doc (first forms)})
+            m)
+        forms (if (string? (first forms))
+                (next forms)
+                forms)
+        m (if (map? (first forms))
+            (conj m (first forms))
+            m)
+        forms (if (map? (first forms))
+                (next forms)
+                forms)
+        m (if (map? (last forms))
+            (conj m (last forms))
+            m)
+        forms (if (map? (last forms))
+                (butlast forms)
+                forms)]
+
+    `(def ~(with-meta name m) (fn-match ~@forms))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
