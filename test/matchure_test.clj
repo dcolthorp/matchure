@@ -175,7 +175,30 @@
        1))
 
   (is (thrown? IllegalArgumentException ((fn-match [1] true)
-        2))))
+                                         2)))
+
+  (testing "Variadic matching functions"
+    (let [myfn (fn-match ([1 & _] :1-_)
+                         ([] :zero-args)
+                         ([2] :2)
+                         ([3 4 & _] :3-4-_))]
+      (is (= :1-_ (myfn 1)))
+      (is (= :zero-args (myfn)))
+      (is (= :2 (myfn 2)))
+      (is (= :1-_ (myfn 1 2 3 4)))
+      (is (= :3-4-_ (myfn 3 4 5)))
+      (is (thrown? IllegalArgumentException (myfn 3)))
+      (is (thrown? IllegalArgumentException (myfn 2 3))))
+
+    (let [myfn2 (fn-match ([1] 1)
+                          ([2 & _] 2)
+                          ([3] 3))]
+      (is (= 1 (myfn2 1)))
+      (is (= 2 (myfn2 2)))
+      (is (= 3 (myfn2 3)))
+      (is (= 2 (myfn2 2 3 4)))
+      (is (thrown? IllegalArgumentException (myfn2 1 2)))
+      (is (thrown? IllegalArgumentException (myfn2 3 4))))))
 
 (defn-match testfn
   "docstr"

@@ -151,8 +151,6 @@ the following match functions are never evaluated. "
 (defn- varargs? [form]
   (some #(= '& %) (first form)))
 
-(defn- min-non-varargs-length [forms]
-  (apply min (map #(count (first %)) (remove varargs? forms))))
 (defn- max-non-varargs-length [forms]
   (apply max (map #(count (first %)) (remove varargs? forms))))
 
@@ -162,13 +160,12 @@ the following match functions are never evaluated. "
 (defn group-fn-forms-by-count
   "Given a sequence of ([&args] forms) forms, group them into a hash of {count, [forms]}"
   [forms]
-  (let [max-size (max-non-varargs-length forms)
-        min-size (min-non-varargs-length forms)]
+  (let [max-size (max-non-varargs-length forms)]
     (reduce
      (fn [groups form]
        (if (varargs? form)
-         (loop [i (max (min-varargs form)
-                       min-size) groups groups]
+         (loop [i (min-varargs form)
+                groups groups]
            (if (<= i max-size)
              (let [collection (or (get groups i) [])]
               (recur (inc i)
@@ -248,7 +245,7 @@ Example:
         ~@(map #(apply fn-form-for-match %) groups)
         ~@(if (empty? varargs)
             (list)
-            (list (varargs-fn-form-for-match (min-non-varargs-length forms) varargs)))))))
+            (list (varargs-fn-form-for-match (max-non-varargs-length forms) varargs)))))))
 
 (defmacro defn-match
   "Works like clojure.core/defn, but argument lists are patterns. Any failed match raises IllegalArgumentException.

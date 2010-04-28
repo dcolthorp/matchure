@@ -142,7 +142,11 @@ Or match multiple values against multiple patterns
 `fn-match` and `defn-match` work like the corresponding builtins, but
 match their patterns. They support both the (fn [& args] body) and (fn
 ([& arglist1] body1)...) variants. An IllegalArgumentException is
-raised if either the number of 
+raised if either the number of arguments does not fit any provided
+pattern or the particular specified arguments do not fit any
+pattern. `fn-match` and `defn-match` define multi-arity functions
+behind the scenes and only test patterns that could conceivably match
+a call of a given arity.
 
 `fn-match` defines anonymous functions that pattern match on
 arguments:
@@ -170,7 +174,6 @@ See [http://clojars.org/matchure](http://clojars.org/matchure).
 ## Todo
 
 * Don't create fns for cases that are trivial or not repeated.
-* Create a `fn-match` form.
 
 ## License
 
