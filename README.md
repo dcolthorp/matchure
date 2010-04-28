@@ -174,6 +174,8 @@ See [http://clojars.org/matchure](http://clojars.org/matchure).
 ## Todo
 
 * Don't create fns for cases that are trivial or not repeated.
+* Smarter handling of classes.
+* Add public extension mechanism.
 
 ## License
 
