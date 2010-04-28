@@ -197,6 +197,7 @@
       (is (= 2 (myfn2 2)))
       (is (= 3 (myfn2 3)))
       (is (= 2 (myfn2 2 3 4)))
+      (is (thrown? IllegalArgumentException (myfn2)))
       (is (thrown? IllegalArgumentException (myfn2 1 2)))
       (is (thrown? IllegalArgumentException (myfn2 3 4))))))
 

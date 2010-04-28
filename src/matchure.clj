@@ -148,17 +148,22 @@ the following match functions are never evaluated. "
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; fn-match
 
-(defn- varargs? [form]
+(defn- varargs?
+  [form]
   (some #(= '& %) (first form)))
 
-(defn- max-non-varargs-length [forms]
+(defn- max-non-varargs-length
+  "Returns the maximum number of args any non-varargs form in the form can handle"
+  [forms]
   (apply max (map #(count (first %)) (remove varargs? forms))))
 
-(defn- min-varargs [form]
+(defn- min-varargs
+  "Returns the minimum number of args a varargs form can take"
+  [form]
   (count (take-while #(not (= '& %)) (first form))))
 
 (defn group-fn-forms-by-count
-  "Given a sequence of ([&args] forms) forms, group them into a hash of {count, [forms]}"
+  "Given a sequence of ([args] body) forms, group them into an ordered map of {count, [forms]}"
   [forms]
   (let [max-size (max-non-varargs-length forms)]
     (reduce
@@ -177,36 +182,33 @@ the following match functions are never evaluated. "
      (sorted-map)
      forms)))
 
+(defn- cond-form-for-fn
+  "Return a cond-match pattern/body pair for a form, handling normal/varargs forms appropriately."
+  [argnames form]
+  (if (varargs? form)
+    (let [n (min-varargs form)
+          first-patterns (take n (first form))
+          rest-pattern (last (first form))
+          [first-argnames rest-argnames] (split-at n argnames)
+          first-matches (into [] (interleave first-patterns first-argnames))
+          all-matches (into []  (concat first-matches [rest-pattern (cons 'list rest-argnames)]))]
+      `(~all-matches (do ~@(rest form))))
+    `(~(into [] (interleave (first form) argnames))
+      (do ~@(rest form)))))
+
 (defn- fn-form-for-match
   "Given a number of arguments and a sequence of ([args] forms) values, generate a ([args] forms) form that can be used in a standard fn. "
   [arg-count forms]
   (let [argnames (map gensym (map #(str "arg" %) (range arg-count)))]
     `([~@argnames]
         (cond-match
-          ~@(mapcat
-             (fn [form]
-               (if (varargs? form)
-                 (let [n (min-varargs form)
-                       first-patterns (take n (first form))
-                       rest-pattern (last (first form))
-                       [first-argnames rest-argnames] (split-at n argnames)
-                       first-matches (into [] (interleave first-patterns first-argnames))
-                       all-matches (into []  (concat first-matches [rest-pattern (cons 'list rest-argnames)]))]
-                   (cons all-matches
-                         (if (empty? (rest form))
-                           [nil]
-                           (rest form))))
-                 `(~(into [] (interleave (first form) argnames))
-                   ~@(if (empty? (rest form))
-                           [nil]
-                           (rest form)))))
-             forms)
-          ~@(list
-             (into [] (interleave (repeat arg-count '_) argnames))
-             '(throw (IllegalArgumentException. "Failed to match arguments")))))))
+          ~@(mapcat (partial cond-form-for-fn argnames) forms)
+          ~(into [] (interleave (repeat arg-count '_) argnames))
+          (throw (IllegalArgumentException. "Failed to match arguments"))))))
 
 
 (defn- varargs-fn-form-for-match
+  "Return a ([& args] body) form that uses all of the provided fn-match varargs forms to pattern match the arguments."
   [min-length forms]
   (let [argnames (map gensym (map #(str "arg" %) (range min-length)))
         restname (gensym "rest")
@@ -214,10 +216,7 @@ the following match functions are never evaluated. "
     `([~@argnames & ~restname]
         (cond-match (list* ~@argnames ~restname)
                     ~@(mapcat
-                       (fn [form]
-                         `(~(first form)
-                           ~@(if (empty? (rest form)) [nil]
-                                 (rest form))))
+                       (fn [form] `(~(first form) (do ~@(rest form))))
                        forms)
                     ~'_ (throw (IllegalArgumentException. "Failed to match arguments"))))))
 
