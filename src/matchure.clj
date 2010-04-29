@@ -1,5 +1,6 @@
 (ns matchure
-  (:require [clojure.zip :as zip]))
+  (:require [clojure.zip :as zip]
+            [clojure.walk :as walk]))
 
 (import '[java.util Map])
 
@@ -24,16 +25,31 @@
 (defn- class-name? [class]
   (re-find #"\A(?:[a-z0-9]+\.)+[A-Z]\w*\Z" (name class)))
 
+(defn- all-zip [root]
+  (zip/zipper #(instance? clojure.lang.Seqable %)
+              seq
+              #(into (empty %1) %2)
+              root))
+
+(defn- deep-count [root atom]
+  (loop [zipper (all-zip root) n 0]
+    (if (zip/end? zipper)
+      n
+      (if (= (zip/node zipper)
+             atom)
+        (recur (zip/next zipper) (inc n))
+        (recur (zip/next zipper)
+               n)))))
+
+
+
 (defn- extract-variables-from-pattern [pattern]
   (if (symbol? pattern)
     (if (variable-binding? pattern)
       [(bound-variable-name pattern)]
       [])
     (if (instance? clojure.lang.Seqable pattern)
-      (loop [zipper (zip/zipper #(instance? clojure.lang.Seqable %)
-                                seq
-                                #(into (empty %1) %2)
-                                pattern)
+      (loop [zipper (all-zip pattern)
             variables []]
        (if (zip/end? zipper)
          (distinct variables)
@@ -107,16 +123,29 @@ the following match functions are never evaluated. "
 		  {:success (fn [state] (compile-matches remainder success-code failure-code options)),
 		   :failure  (fn [_] failure-code)}))))))
 
+(defn- wrap-code? [compiled placeholder code]
+  (and (> 1 (deep-count compiled placeholder)) (list? code)))
+
+
 (defn- compile-top-level-match "Compiles a match at the very top level."
   [matches success-code failure-code]
   (assert (vector? matches))
   (with-gensyms [successn failuren]
     (let [variables (extract-variables-list-from-matches matches)
-          variable-assigns (mapcat #(vector % nil) variables)]
+          variable-assigns (mapcat #(vector % nil) variables)
+          success-placeholder (gensym "success")
+          failure-placeholder (gensym "failure")
+          compiled (compile-matches matches success-placeholder failure-placeholder {})
+          wrap-success (wrap-code? compiled success-placeholder success-code)
+          wrap-failure (wrap-code? compiled failure-placeholder failure-code)]
       `(let [~@variable-assigns
-             ~successn (fn [~@variables] ~success-code)
-             ~failuren (fn [~@variables] ~failure-code)]
-        ~(compile-matches matches `(~successn ~@variables) `(~failuren ~@variables) {})))))
+             ~@(if wrap-success (list successn `(fn [~@variables] ~success-code)))
+             ~@(if wrap-failure (list failuren `(fn [~@variables] ~failure-code)))]
+         ~(walk/prewalk-replace {success-placeholder (if wrap-success `(~successn ~@variables) success-code)
+                                  failure-placeholder (if wrap-failure `(~failuren ~@variables) failure-code)}
+                                 compiled
+
+                   )))))
 
 (defmacro if-match
   ([matches true-case] 
@@ -126,6 +155,7 @@ the following match functions are never evaluated. "
 
 (defmacro when-match [matches & code]
   `(if-match ~matches (do ~@code)))
+
 
 (defmacro cond-match [& patterns]
   (letfn [(compile-conditions [patterns]
@@ -355,14 +385,7 @@ Example:
 ;; Function evaluation
 
 (defmethod compile-list :default [pattern matching-name state]
-  (letfn [(replace-? [tree replacement]
-		     (loop [zipper (zip/seq-zip tree)]
-		       (if (zip/end? zipper)
-			 (zip/node zipper)
-			 (recur (zip/next (if (= '? (zip/node zipper))
-					    (zip/replace zipper replacement)
-					    zipper))))))]
-    (simple-if state (replace-? pattern matching-name))))
+  (simple-if state (walk/postwalk-replace {'? matching-name} pattern)))
 
 
 ;;; special forms
