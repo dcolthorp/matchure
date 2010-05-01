@@ -4,7 +4,7 @@ matchure
 Matchure is pattern matching for clojure.
 
 * sequence destructuring
-* Map destructuring
+* map destructuring
 * equality checks
 * regexp matches
 * variable binding
@@ -13,7 +13,7 @@ Matchure is pattern matching for clojure.
 * boolean operators (and, or, not)
 * if, when, cond, fn, and defn variants
 
-Matchure is pretty fast too – all patterns matches are compiled to nested if statements at compile time. 
+Matchure is pretty fast too - all patterns matches are compiled to nested if statements at compile time. 
 
 Usage
 --------
@@ -112,7 +112,9 @@ Or and not also supported. To assert the matched value is a string either doesn'
 
 #### Quote
 
-Quote allows you to escape what would otherwise be a pattern so it's tested for equality instead.
+Quote allows you to escape what would otherwise be a pattern so it's
+tested for equality instead. For example, the pattern`'foo` tests for
+equality to the symbol `foo`.
 
 ### when-match and cond-match
 
@@ -144,9 +146,7 @@ match their patterns. They support both the (fn [& args] body) and (fn
 ([& arglist1] body1)...) variants. An IllegalArgumentException is
 raised if either the number of arguments does not fit any provided
 pattern or the particular specified arguments do not fit any
-pattern. `fn-match` and `defn-match` define multi-arity functions
-behind the scenes and only test patterns that could conceivably match
-a call of a given arity.
+pattern. 
 
 `fn-match` defines anonymous functions that pattern match on
 arguments:
@@ -162,6 +162,88 @@ arguments:
       ([0] 1)
       ([1] 1)
       ([?n] (+ (fib (dec n)) (fib (dec (dec n))))))
+
+`fn-match` and `defn-match` are intended to work as though the
+provided arguments are matched against each provided pattern in
+order. For example, consider the function
+
+    (defn-match example-fn
+      ([_ & _] :wildcard)
+      ([] :no-args)
+      ([1] :one)
+      ([:a :b] :a-b))
+
+`fn-match` first tests its arguments against `[_ & _]`, which will
+match any sequence having at least one element. It then tests its
+arguments against `[]` which matches an empty sequence.  finally `[1]`
+and `[:a :b]` are tested. Because `[_ & _]` will match any non-empty
+set of arguments, `example-fn` only has two return values in practice:
+`:no-args` is returned when `example-fn` is called with no arguments,
+and `:wildcard` is returned for any other set of arguments. This is
+true even for `(example-fn 1)` because `[_ & _]` is tested first.
+
+Performance Characteristics
+-------------------
+
+An efforts been made to have patterns compile down into efficient
+code. One goal was to be able to use patterns in almost any context
+without having to worry about overhead. In general, every set of
+patterns compiles down into a tree of `if` and `let`
+statements. Pattern matches short circuit, and redundant checks are
+avoided. For example, when `[:a, :b, :c]` is compiled, you end up with
+a code tree that checks the value matched against is seqable, then
+that the first element is equal to `:a`, then the second is equal to
+`:b`, etc. If any of these checks fails, the match short circuits and
+the failure branch is taken.
+
+Because of this, the success and failure branches passed to `if-let`
+(which all the other macros compile down to) can be repeated a large
+number of times. If they contain other macro calls, the whole thing
+can generate into a large amount of code. For this reason, if either
+the true or the false branch is going to be repeated more than once,
+and that branch is not atomic, it is wrapped in an anonymous function
+which is called any place that case can occur. This compramise can
+make simple cases a tiny bit slower but hopefully avoids more drastic
+consequences for complex use cases and increases the chance the
+resulting function is below the JVM's inline limit.
+
+`fn-match` and `defn-match` define multi-arity functions behind the
+scenes and only test patterns that compatible with the provided number
+of arguments. Furthermore, varargs are only used if varargs patterns
+are provided, and then only for argument counts that don't match any
+non-variadic patterns. In practice, this means matching functions that
+use simple patterns are about as fast as the function you probably
+would have written yourself.
+
+As an example, here's the `fn` `example-fn` ends up expanding
+to.
+
+    (clojure.core/fn
+     ([]
+        (matchure/cond-match
+         [] (do :no-args)
+         [] (throw (java.lang.IllegalArgumentException. "Failed to match arguments"))))
+     ([arg02655]
+        (matchure/cond-match
+         [_ arg02655 _ (list)] (do :wildcard)
+         [1 arg02655] (do :one)
+         [_ arg02655] (throw (java.lang.IllegalArgumentException. "Failed to match arguments"))))
+     ([arg02656 arg12657]
+        (matchure/cond-match
+         [_ arg02656 _ (list arg12657)] (do :wildcard)
+         [:a arg02656 :b arg12657] (do :a-b)
+         [_ arg02656 _ arg12657] (throw (java.lang.IllegalArgumentException. "Failed to match arguments"))))
+     ([arg02653 arg12654 & rest2651]
+        (matchure/cond-match (clojure.core/list* arg02653 arg12654 rest2651)
+         [_ & _] (do :wildcard)
+         _ (throw (java.lang.IllegalArgumentException. "Failed to match arguments")))))
+
+Notice that that `[_ & _]` is not tested when no arguments are passed
+in, and `[]` is not tested when any arguments are passed in, because
+these patterns' arities don't match those cases. Also note that
+variadic patterns introduce a small amount of overhead to test (to
+combine the extra arguments into a sequence), so putting variadic
+patterns toward the end of a function definition can reduce overhead.
 
 ### More examples
 

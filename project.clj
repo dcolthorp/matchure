@@ -1,4 +1,4 @@
-(defproject matchure "0.9.0-SNAPSHOT"
+(defproject matchure "0.9.1"
   :description "Idiomatic and powerful pattern matching in clojure"
   :dependencies [[org.clojure/clojure "1.1.0"]
                  [org.clojure/clojure-contrib "1.1.0"]]
