@@ -1,9 +1,9 @@
 (ns matchure-test
   (:use clojure.test
-	matchure))
+	matchure
+        matchure.compile))
 
 (import '(java.util ArrayList TreeMap))
-
 
 (deftest test-if-match
   (testing "matching simple values"
@@ -32,8 +32,10 @@
 
     ; require fully qualified class name
     (is (not (let [String "asdf"] (if-match [String ""] true))))
-    (is (not (if-match [java.lang.String nil] true))))
+    (is (not (if-match [java.lang.String nil] true)))
 
+    ;; test class name with a '-' in it
+    (is (= "matchure-test.Foo" (class-name? 'matchure-test.Foo))))
 
   (testing "destructuring/binding sequences"
     (is (= {:a 1, :b 2}
