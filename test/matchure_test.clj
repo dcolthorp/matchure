@@ -44,7 +44,7 @@
     (is (= {:a 1, :b 2}
            (if-match [[?a ?b] [1 2]] {:a a, :b b})))
 
-    (is (if-match [[] nil] true false))
+    (is (if-match [[] nil] false true))
 
     (is (not (if-match [[?a ?b] [1]] true)))
     (is (= {:a 1, :b 2}
