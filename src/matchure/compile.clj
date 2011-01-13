@@ -190,7 +190,7 @@ the following match functions are never evaluated. "
     `(if (or
           (instance? clojure.lang.Seqable ~matching-name)
           (instance? Iterable ~matching-name)
-          (.isArray (class ~matching-name)))
+          (and ~matching-name (.isArray (class ~matching-name))))
        ~(compile-rest pattern matching-name state)
        ~(failure state))))
 
