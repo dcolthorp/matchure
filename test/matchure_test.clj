@@ -1,7 +1,8 @@
 (ns matchure-test
   (:use clojure.test
 	matchure
-        matchure.compile))
+        matchure.compile
+        clojure.contrib.macro-utils))
 
 (import '(java.util ArrayList TreeMap))
 

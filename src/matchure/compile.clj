@@ -121,7 +121,7 @@ the following match functions are never evaluated. "
                    :failure  (fn [_] failure-code)}))))))
 
 (defn wrap-code? [compiled placeholder code]
-  (and (> 1 (deep-count compiled placeholder)) (coll? code)))
+  (and (< 1 (deep-count compiled placeholder)) (coll? code)))
 
 
 (defn compile-top-level-match "Compiles a match at the very top level."
