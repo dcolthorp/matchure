@@ -117,7 +117,16 @@
       (is (not (if-match [(and ?a #"hello" #"world" (not #"goodbye")) "To world: hello. goodbye."] true)))
       (is (not (if-match [(and ?a #"hello" #"world" (not #"goodbye")) "Aw, hell, world"] true)))
       (is (not (if-match [(and ?a #"hello" #"world" (not #"goodbye")) "hello, give it a worl, d"] true)))))
-  )
+
+  (testing "regressions"
+    (is  (mexpand-all '(if-match [(or
+                                   [:black [:red [:red ?a ?x ?b] ?y ?c] ?z ?d]
+                                   [:black [:red ?a ?x [:red ?b ?y ?c]] ?z ?d]
+                                   [:black ?a ?x [:red [:red ?b ?y ?c] ?z ?d]] 
+                                   [:black ?a ?x [:red ?b ?y [:red ?c ?z ?d]]]
+                                   ) tree]
+                                 [:red [:black a x b] y [:black c z d]]
+                                 tree)))))
 
 
 (deftest test-when-match

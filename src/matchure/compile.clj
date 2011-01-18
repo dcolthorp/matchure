@@ -236,16 +236,18 @@ the following match functions are never evaluated. "
   (letfn [(compile-and [patterns matching-name state]
                        (if (empty? patterns)
                          (success state)
-                         (compile-pattern (first patterns) matching-name
-                                          (wrap-result state :success #(compile-and (rest patterns) matching-name %)))))]
+                         (compile-top-level-match [(first patterns) matching-name]
+                                                  (compile-and (rest patterns) matching-name state)
+                                                  (failure state))))]
     (compile-and patterns matching-name state)))
 
 (defmethod compile-list 'or [[_ & patterns] matching-name state]
   (letfn [(compile-or [patterns matching-name state]
                       (if (empty? patterns)
                         (failure state)
-                        (compile-pattern (first patterns) matching-name
-                                         (wrap-result state :failure #(compile-or (rest patterns) matching-name %)))))]
+                        (compile-top-level-match [(first patterns) matching-name]
+                                                 (success state)
+                                                 (compile-or (rest patterns) matching-name state))))]
     (compile-or patterns matching-name state)))
 
 (defmethod compile-list 'not [[_ pattern] matching-name state]
