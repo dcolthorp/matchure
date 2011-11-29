@@ -280,3 +280,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
+Author
+======
+* Drew Colthorp (colthorp@atomicobject.com)
+* &copy; 2011 [Atomic Object](http://www.atomicobject.com/)
+* More Atomic Object [open source](http://www.atomicobject.com/pages/Software+Commons) projects
