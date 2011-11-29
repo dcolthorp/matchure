@@ -259,7 +259,7 @@ See [http://clojars.org/matchure](http://clojars.org/matchure).
 
 ## License
 
-Copyright (c) 2010 Drew Colthorp
+Copyright (c) 2011 Drew Colthorp
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -282,6 +282,5 @@ THE SOFTWARE.
 
 Author
 ======
-* Drew Colthorp (colthorp@atomicobject.com)
-* &copy; 2011 [Atomic Object](http://www.atomicobject.com/)
+* Drew Colthorp (colthorp@atomicobject.com) and [Atomic Object](http://www.atomicobject.com/)
 * More Atomic Object [open source](http://www.atomicobject.com/pages/Software+Commons) projects
