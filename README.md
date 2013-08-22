@@ -13,16 +13,18 @@ Matchure is pattern matching for clojure.
 * boolean operators (and, or, not)
 * if, when, cond, fn, and defn variants
 
-It features 
+Featuring 
     `fn-match`
 , which dynamically yields a (lambda) matching function, 
 and 
     `defn-match`
-which provides for _à la Erlang_ function definitions (see below).
+which provides for clean, _à la Erlang_ function definitions (see below).
 
 Matchure is pretty fast too - all patterns matches are compiled to nested if statements at compile time.
 
-Changes since matchure 0.10.1:
+Changes 
+--------
+Since matchure 0.10.1:
 - compiled and tested against Clojure 1.5.1 
 - big number types (M suffix) do not match anymore against other numeric types 
 - the main namespace is now matchure.core
