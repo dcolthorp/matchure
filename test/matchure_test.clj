@@ -1,8 +1,8 @@
 (ns matchure-test
   (:use clojure.test
-	matchure
-        matchure.compile
-        clojure.contrib.macro-utils))
+        clojure.tools.macro                  ;; New clojure-contrib packaging
+        matchure.core
+        matchure.compile))
 
 (import '(java.util ArrayList TreeMap))
 
@@ -18,10 +18,23 @@
 
     (is (if-match [nil nil] true))
     (is (if-match [1234 1234] true))
-    (is (if-match [1234M 1234] true))
-    (is (if-match [1234M 1234M] true))
+    
+    #_(is (if-match [1234M 1234] true))       ;; (= 1234M 1234) -> false  
+                                              ;; Fails in clojure 1.5.1 (OK in 1.2), 
+                                              ;; at least on my Mac 10.8.4 / JVM SE7
+                                              ;; I think it's a good thing, as types shouldn't match
+                                              ;; but my math falls pretty short :o)
+    (is (= nil (if-match [1234M 1234] true)))        ;; mod 
+                                                     ;; nil when no match? hehe; I checked your cool ::kw tip 
+                                                     ;; against Clotilde, it'd need a full rewrite, the logic
+                                                     ;; is tied to some nils found in sequences, but thank you! 
+    
+    (is (if-match [1234M 1234M] true))        
     (is (if-match [1.234 1.234] true))
-    (is (if-match [1.234M 1.234] true))
+    
+    #_(is (if-match [1.234M 1.234] true))     ;; Same as above, (= 1.234M 1.234) -> false
+    (is (= nil (if-match [1.234M 1.234] true)))      ;; mod
+    
     (is (if-match [1.234M 1.234M] true))
 
     (is (if-match ["abc 123" "abc 123"] true))
