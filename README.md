@@ -14,10 +14,10 @@ Matchure is pattern matching for clojure.
 * if, when, cond, fn, and defn variants
 
 It features 
-    fn-match
+    `fn-match`
 , which dynamically yields a (lambda) matching function, 
 and 
-    defn-match
+    `defn-match`
 which provides for _à la Erlang_ function definitions (see below).
 
 Matchure is pretty fast too - all patterns matches are compiled to nested if statements at compile time.
@@ -48,11 +48,13 @@ Add a :use clause to your namespace:
 
 Basic values check for equality
 
+```clojure
     (if-match [nil nil] true) ;=> true
     (if-match [1 1] true) ;=> true
     (if-match ["asdf" "asdf"] true) ;=> true
     (let [s "asdf"]
       (if-match ["asdf" s] true)) ;=> true
+````
 
 ### Wildcards
 
@@ -66,25 +68,32 @@ and is substituted into function calls for arbitrary tests (examples below).
 
 Regular expression literals check for a match
 
+```clojure
     (if-match [#"hello" "hello world"] true) ;=> true
+```
 
 ### Type checking
 
 Fully qualified class/interface names check `instance?`.
 
+```clojure
     (if-match [java.lang.String "foo"] true) ;=> true
     (if-match [java.lang.Comparable "foo"] true) ;=> true
+````
 
 ### Variable binding
 
 The form `?var` is a pattern which always succeeds and has the side effect of binding the matched-against value to the variable `var`.
 
+```clojure
     (if-match [?foo "bar"] foo) ;=> "bar"
+````
 
 ### Sequence destructuring
 
 Literal vectors destructure and match sequences.
 
+```clojure
     (if-match [[?fst & ?rst] [1 2 3]] [fst rst]) ;=> [1 (2 3)]
     (if-match [[:message ?value] [:message "foo"]] value) ;=> "foo"
     (if-match [[java.lang.String java.lang.String] (list "hello" "world")] true) ;=> true
@@ -93,32 +102,43 @@ Literal vectors destructure and match sequences.
     ; can also destructure maps
     (if-match [[[?key ?value] & ?rest] (sorted-map 1 2)] [key value rest]) ;=> (1 2 ())
     (if-match [[[?key ?value] & ?rest] (sorted-map 1 2, 3 4)] [key value rest]) ;=> (1 2 ([3 4]))
+````
 
 Failing matches
     
+```clojure
     (if-match [[?fst & ?rst] []] [fst rst] :failed-match) ;=> :failed-match
     (if-match [[[?key ?value] & ?rest] (sorted-map)] [key value rest]) ;=> nil
+````
     
 ### Destructuring Maps
 
 Map literals look up corresponding values by key and check the value of the given map against the pattern value of the pattern map.
 
+```clojure
     (if-match [{:foo java.lang.String} {:foo "bar"}] true) ;=> true
     (if-match [{:foo java.lang.String} (sorted-map :foo "bar")] true) ;=>
+```
 
 Keys that aren't pattern matched are ignored
 
+```clojure
     (if-match [{:foo java.lang.String} {:foo "bar", :baz "qux"}] true) ;=> true
+```
 
 Assoc lists aren't currently supported
 
+```clojure
     (if-match [{:foo java.lang.String} [[:foo "bar"]]] true) ;=> nil
-    
+``` 
+
 ### Expressions
 
 Lists are evaluated as clojure expressions, with `?` being substituted for the matched-against value. For example, to check for an odd integer, you would use
 
+```clojure
     (if-match [(odd? ?) 1] true) ;=> true
+```
 
 
 ### Special forms
@@ -127,14 +147,18 @@ Not all lists are left as-is. Matchure has an extensible set of special forms. R
 
 One common use of `and` is to test a value and bind it to a variable if the test succeeds:
 
+```clojure
     (if-match [(and ?foo #"hello") "hello world"] foo) ;=> "hello world"
     (if-match [(and ?foo #"hello") "goodbye world"] foo) ;=> nil
+```
 
 Or and not also supported. To assert the matched value is a string either doesn't match `#"hello"` or matches both `#"hello"` and `#"world"`:
 
+```clojure
     (if-match [(or (not #"hello") #"world") "hello world"] true) ;=> true
     (if-match [(or (not #"hello") #"world") "whatever"] true) ;=> true
     (if-match [(or (not #"hello") #"world") "hello everyone"] true) ;=> nil
+```
 
 #### Quote
 
@@ -146,24 +170,30 @@ equality to the symbol `foo`.
 
 You can also use `when-match`
 
+```clojure
     (when-match [[?fst & ?rst] (list 1 2)]
       (prn "asdf")
       (prn "ghjkl"))
+```
 
 `cond-match` allows you to either test one value against multiple patterns
 
+```clojure
     (cond-match "hello, world"
       #"foo" "matches foo"
       #"hello" "matches hello"
       ? "doesn't match either") ;=> "matches hello"
+```
 
 Or match multiple values against multiple patterns
 
+```clojure
     (let [s "hello world"]
       (cond-match
         [#"foo" s] "matches foo"
         [#"hello" s] "matches hello"
         [? s] "doesn't match either")) ;=> "matches hello"
+```
 
 ### fn-match and defn-match
 
@@ -177,27 +207,33 @@ pattern.
 `fn-match` defines anonymous functions that pattern match on
 arguments:
 
+```clojure
     (fn-match this
       ([0] 1)
       ([1] 1)
       ([?n] (+ (this (dec n)) (this (dec (dec n))))))
+```
 
 `defn-match` works similarly:
 
+```clojure
     (defn-match fib
       ([0] 1)
       ([1] 1)
       ([?n] (+ (fib (dec n)) (fib (dec (dec n))))))
+```
 
 `fn-match` and `defn-match` are intended to work as though the
 provided arguments are matched against each provided pattern in
 order. For example, consider the function
 
+```clojure
     (defn-match example-fn
       ([_ & _] :wildcard)
       ([] :no-args)
       ([1] :one)
       ([:a :b] :a-b))
+```
 
 `fn-match` first tests its arguments against `[_ & _]`, which will
 match any sequence having at least one element. It then tests its
@@ -244,6 +280,7 @@ would have written yourself.
 As an example, here's the `fn` `example-fn` ends up expanding
 to.
 
+```clojure
     (clojure.core/fn
      ([]
         (matchure/cond-match
@@ -263,6 +300,7 @@ to.
         (matchure/cond-match (clojure.core/list* arg02653 arg12654 rest2651)
          [_ & _] (do :wildcard)
          _ (throw (java.lang.IllegalArgumentException. "Failed to match arguments")))))
+```
 
 Notice that that `[_ & _]` is not tested when no arguments are passed
 in, and `[]` is not tested when any arguments are passed in, because
@@ -274,14 +312,6 @@ patterns toward the end of a function definition can reduce overhead.
 ### More examples
 
 For more examples, see the [tests](http://github.com/dcolthorp/matchure/blob/master/test/matchure_test.clj).
-
-## Installation
-
-See [http://clojars.org/matchure](http://clojars.org/matchure).
-
-## Todo
-
-* Add public extension mechanism.
 
 ## License
 
