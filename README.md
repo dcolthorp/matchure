@@ -1,7 +1,7 @@
 matchure
 ============
 
-Matchure is pattern matching for clojure.
+Matchure is pattern matching for Clojure, by Drew Colthorp.
 
 * sequence destructuring
 * map destructuring
@@ -25,7 +25,7 @@ Matchure is pretty fast too - all patterns matches are compiled to nested if sta
 Changes 
 --------
 Since matchure 0.10.1:
-- compiled and tested against Clojure 1.5.1 
+- compiled and tested against Clojure 1.6.0 
 - big number types (M suffix) do not match anymore against other numeric types 
 - the main namespace is now matchure.core
 
@@ -35,8 +35,8 @@ Usage
 Add a Leiningen depency to your project.clj:
 ```clojure
 (defproject your-project "0.0.1"
-  :dependencies [[org.clojure/clojure "1.5.1"]
-                 [matchure "0.13.0-SNAPSHOT"]])
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [matchure "0.13.1"]])
 ````
 
 Add a :use clause to your namespace:

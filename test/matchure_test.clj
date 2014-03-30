@@ -1,6 +1,6 @@
 (ns matchure-test
   (:use clojure.test
-        clojure.tools.macro                  ;; New clojure-contrib packaging
+        clojure.tools.macro                  
         matchure.core
         matchure.compile))
 

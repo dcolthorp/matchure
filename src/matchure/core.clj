@@ -1,5 +1,5 @@
-(ns matchure.core                         ;; Moved and renamed matchure to matchure.core
-  (:use matchure.compile))                ;; to follow lein (new) good practices. Maybe picky?
+(ns matchure.core                         
+  (:use matchure.compile))                
 
 
 (defmacro if-match
