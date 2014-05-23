@@ -36,7 +36,7 @@ Add a Leiningen depency to your project.clj:
 ```clojure
 (defproject your-project "0.0.1"
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [matchure "0.13.1"]])
+                 [matchure "0.13.1"]]) ;; try org.clojars.justiniac/matchure if needed
 ````
 
 Add a :use clause to your namespace:
