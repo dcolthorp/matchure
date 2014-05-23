@@ -1,5 +1,7 @@
-(defproject matchure "0.10.1"
+(defproject org.clojars.justiniac/matchure "0.13.1"
   :description "Idiomatic and powerful pattern matching in clojure"
-  :dependencies [[org.clojure/clojure "1.2.0"]
-                 [org.clojure/clojure-contrib "1.2.0"]]
-  :dev-dependencies [[lein-clojars "0.6.0"]])
+  :url "https://github.com/justiniac/matchure"
+  :license {:name "Copyright (c) 2011 Drew Colthorp"
+            :url "https://github.com/justiniac/matchure#license"}
+  :dependencies [[org.clojure/clojure "1.6.0"]
+                 [org.clojure/tools.macro "0.1.2"]])

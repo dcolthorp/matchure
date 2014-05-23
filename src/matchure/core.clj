@@ -1,5 +1,5 @@
-(ns matchure
-  (:use matchure.compile))
+(ns matchure.core                         
+  (:use matchure.compile))                
 
 
 (defmacro if-match
