@@ -35,8 +35,8 @@
     (is (not (let [String "asdf"] (if-match [String ""] true))))
     (is (not (if-match [java.lang.String nil] true)))
 
-    ;; test class name with a '-' in it
-    (is (= "matchure-test.Foo" (class-name? 'matchure-test.Foo))))
+    ;; test class name with a '_' in it
+    (is (= "matchure_test.Foo" (class-name? 'matchure_test.Foo))))
 
   (testing "destructuring/binding sequences"
     (is (= {:a 1, :b 2}

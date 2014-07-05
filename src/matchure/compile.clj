@@ -23,7 +23,7 @@
     (symbol name-rest)))
 
 (defn class-name? [class]
-  (re-find #"\A(?:[a-z0-9\-]+\.)+[A-Z]\w*\Z" (name class)))
+  (re-find #"\A(?:[a-z0-9\_]+\.)+[A-Z]\w*\Z" (name class)))
 
 (defn all-zip [root]
   (zip/zipper #(instance? clojure.lang.Seqable %)
